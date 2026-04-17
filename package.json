@@ -26,7 +26,8 @@
   },
   "homepage": "https://github.com/dongitran/SAP-Bruno#readme",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "type": "module",
   "engines": {
@@ -61,8 +62,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "spell": "cspell --no-progress \"**/*.{ts,md,json}\"",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
+    "check": "pnpm typecheck && pnpm lint && pnpm spell && pnpm test",
     "prepare": "husky",
     "prepublishOnly": "pnpm build"
   },
@@ -83,7 +85,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.17.0",
     "@types/node": "^22.10.5",
     "@vitest/coverage-v8": "^2.1.8",
     "cspell": "^8.17.1",
