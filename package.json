@@ -1,6 +1,6 @@
 {
   "name": "sapbruno",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Interactive TUI runner for Bruno collections with OAuth2 client_credentials auto-fetch and pluggable credential providers.",
   "keywords": [
     "bruno",

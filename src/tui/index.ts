@@ -1,6 +1,6 @@
-import { join, relative } from "node:path";
+import { basename, join, relative } from "node:path";
 
-import { select } from "@inquirer/prompts";
+import { confirm, select } from "@inquirer/prompts";
 
 import { loadLocalUsers } from "../basic-auth.js";
 import { upsertEnvVars } from "../bru.js";
@@ -8,21 +8,63 @@ import { calcPrefix, findServices, listBruFiles, listGroups, listSuites } from "
 import { type LoadedConfig } from "../config.js";
 import { log } from "../logger.js";
 import { basicHeader, bearerHeader, fetchClientCredentialsToken } from "../oauth.js";
-import { envProvider, fileProvider, manualProvider } from "../providers/index.js";
-import { type CredentialProvider } from "../providers/index.js";
+import { buildProvider } from "../providers/index.js";
 import { runBru } from "../runner.js";
 
-export async function runTui(loaded: LoadedConfig): Promise<void> {
+export interface RunTuiOptions {
+  loop?: boolean;
+}
+
+export async function runTui(loaded: LoadedConfig, opts: RunTuiOptions = {}): Promise<number> {
   const { config, rootDir } = loaded;
   log.header("SAPBruno API Runner");
 
+  let lastExit = 0;
+
+  // Environment is selected once — most users stay in one env for a full session.
   const envName = await selectEnvironment(loaded);
-  if (!envName) return;
+  if (envName === undefined) return 0;
   const envCfg = config.environments[envName];
   if (!envCfg) {
     log.error(`Environment '${envName}' not configured in sapbruno.config.json`);
-    return;
+    return 1;
   }
+
+  const doLoop = opts.loop ?? true;
+  for (;;) {
+    try {
+      lastExit = await runOnce({ loaded, envName, envCfg, rootDir });
+    } catch (err) {
+      if (isPromptCancellation(err)) {
+        log.warn("Cancelled.");
+        return lastExit;
+      }
+      throw err;
+    }
+    if (!doLoop) break;
+    let again: boolean;
+    try {
+      again = await confirm({ message: "Run another test?", default: true });
+    } catch (err) {
+      if (isPromptCancellation(err)) return lastExit;
+      throw err;
+    }
+    if (!again) break;
+  }
+
+  return lastExit;
+}
+
+interface RunOnceArgs {
+  loaded: LoadedConfig;
+  envName: string;
+  envCfg: LoadedConfig["config"]["environments"][string];
+  rootDir: string;
+}
+
+async function runOnce(args: RunOnceArgs): Promise<number> {
+  const { loaded, envName, envCfg, rootDir } = args;
+  const { config } = loaded;
 
   let basicAuth: { user: string; pass: string } | undefined;
   if (envCfg.auth.type === "basic") {
@@ -30,14 +72,14 @@ export async function runTui(loaded: LoadedConfig): Promise<void> {
     const users = await loadLocalUsers(usersFile);
     if (users.length === 0) {
       log.warn(`No users found in ${usersFile}`);
-      return;
+      return 1;
     }
     const userLabel = await select({
       message: "Mock user:",
       choices: users.map((u) => ({ name: u.label, value: u.label })),
     });
     const u = users.find((x) => x.label === userLabel);
-    if (!u) return;
+    if (!u) return 1;
     basicAuth = { user: u.email, pass: u.password };
     await upsertEnvVars(envFilePath(config.collections, envName), {
       basic_auth_username: u.email,
@@ -48,7 +90,7 @@ export async function runTui(loaded: LoadedConfig): Promise<void> {
   const groups = await listGroups(config.collections, config.ignore);
   if (groups.length === 0) {
     log.error(`No groups found in ${config.collections}`);
-    return;
+    return 1;
   }
   const group = await select({
     message: "Group:",
@@ -59,7 +101,7 @@ export async function runTui(loaded: LoadedConfig): Promise<void> {
   const services = await findServices(groupDir);
   if (services.length === 0) {
     log.warn(`No services in ${group}`);
-    return;
+    return 1;
   }
 
   const serviceRel = await select({
@@ -76,7 +118,7 @@ export async function runTui(loaded: LoadedConfig): Promise<void> {
 
   const suites = await listSuites(serviceDir);
   const suiteChoices = [
-    { name: "▶ Run entire service", value: "__all__" },
+    { name: "> Run entire service", value: "__all__" },
     ...suites.map((s) => ({ name: s, value: s })),
   ];
   const suiteSel = await select({ message: "Test suite:", choices: suiteChoices });
@@ -88,7 +130,7 @@ export async function runTui(loaded: LoadedConfig): Promise<void> {
     const suiteDir = join(serviceDir, suiteSel);
     const files = await listBruFiles(suiteDir);
     const fileChoices = [
-      { name: "▶ Run entire suite", value: "__all__" },
+      { name: "> Run entire suite", value: "__all__" },
       ...files.map((f) => ({ name: basename(f).replace(/\.bru$/, ""), value: f })),
     ];
     const fileSel = await select({
@@ -114,7 +156,7 @@ export async function runTui(loaded: LoadedConfig): Promise<void> {
   } else {
     log.warn(`bru exited with ${result.exitCode.toString()}`);
   }
-  process.exit(result.exitCode);
+  return result.exitCode;
 }
 
 interface InjectAuthArgs {
@@ -136,7 +178,7 @@ async function injectAuth(args: InjectAuthArgs): Promise<void> {
   }
 
   if (args.envCfg.auth.type === "oauth2-client-credentials") {
-    const provider = buildProvider(args.envCfg.credentialProvider, args.loaded);
+    const provider = await buildProvider(args.envCfg.credentialProvider, args.loaded.rootDir);
     if (!provider) {
       log.warn(`No credentialProvider configured for env '${args.envName}'`);
       return;
@@ -153,29 +195,7 @@ async function injectAuth(args: InjectAuthArgs): Promise<void> {
       [`${args.prefix}_oauth_client_secret`]: creds.clientSecret,
       [`${args.prefix}_auth_header`]: bearerHeader(token.access_token),
     });
-    log.success(`Token stored → ${args.prefix}_auth_header`);
-  }
-}
-
-function buildProvider(
-  cfg: LoadedConfig["config"]["environments"][string]["credentialProvider"],
-  _loaded: LoadedConfig,
-): CredentialProvider | undefined {
-  if (!cfg) return undefined;
-  switch (cfg.type) {
-    case "env":
-      return envProvider({
-        tokenUrl: (cfg as { tokenUrl: string }).tokenUrl,
-        clientId: (cfg as { clientId: string }).clientId,
-        clientSecret: (cfg as { clientSecret: string }).clientSecret,
-      });
-    case "file":
-      return fileProvider({ path: (cfg as { path: string }).path });
-    case "manual":
-      return manualProvider();
-    default:
-      log.warn(`Unknown provider type '${cfg.type}'. Built-in: env, file, manual.`);
-      return undefined;
+    log.success(`Token stored -> ${args.prefix}_auth_header`);
   }
 }
 
@@ -200,7 +220,8 @@ function resolveRel(rootDir: string, p: string): string {
   return p.startsWith("/") ? p : join(rootDir, p);
 }
 
-function basename(p: string): string {
-  const parts = p.split("/");
-  return parts[parts.length - 1] ?? p;
+function isPromptCancellation(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  // @inquirer/prompts throws ExitPromptError on Ctrl+C.
+  return err.name === "ExitPromptError" || err.message.includes("force closed");
 }

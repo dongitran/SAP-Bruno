@@ -13,3 +13,4 @@ export interface ProviderContext {
 export { envProvider } from "./env.js";
 export { manualProvider } from "./manual.js";
 export { fileProvider } from "./file.js";
+export { buildProvider } from "./build.js";

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ANSI = {
   reset: "\x1b[0m",
   bold: "\x1b[1m",
@@ -9,26 +8,38 @@ const ANSI = {
   red: "\x1b[31m",
 } as const;
 
+const useColor = process.stderr.isTTY && process.env["NO_COLOR"] === undefined;
+
+function paint(color: keyof typeof ANSI, s: string): string {
+  return useColor ? `${ANSI[color]}${s}${ANSI.reset}` : s;
+}
+
+function write(line: string): void {
+  process.stderr.write(`${line}\n`);
+}
+
 export const log = {
   info: (msg: string): void => {
-    console.log(`  ${ANSI.cyan}i${ANSI.reset}  ${msg}`);
+    write(`  ${paint("cyan", "i")}  ${msg}`);
   },
   success: (msg: string): void => {
-    console.log(`  ${ANSI.green}+${ANSI.reset}  ${msg}`);
+    write(`  ${paint("green", "+")}  ${msg}`);
   },
   warn: (msg: string): void => {
-    console.warn(`  ${ANSI.yellow}!${ANSI.reset}  ${msg}`);
+    write(`  ${paint("yellow", "!")}  ${msg}`);
   },
   error: (msg: string): void => {
-    console.error(`  ${ANSI.red}x${ANSI.reset}  ${msg}`);
+    write(`  ${paint("red", "x")}  ${msg}`);
   },
   raw: (msg: string): void => {
-    console.log(msg);
+    write(msg);
   },
   header: (title: string): void => {
     const bar = "+======================================+";
-    console.log(`\n  ${ANSI.bold}${ANSI.cyan}${bar}${ANSI.reset}`);
-    console.log(`  ${ANSI.bold}${ANSI.cyan}|  ${title.padEnd(36)}|${ANSI.reset}`);
-    console.log(`  ${ANSI.bold}${ANSI.cyan}${bar}${ANSI.reset}\n`);
+    write("");
+    write(`  ${paint("bold", paint("cyan", bar))}`);
+    write(`  ${paint("bold", paint("cyan", `|  ${title.padEnd(36)}|`))}`);
+    write(`  ${paint("bold", paint("cyan", bar))}`);
+    write("");
   },
 };

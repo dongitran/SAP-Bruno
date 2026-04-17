@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { readFile, stat, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { log } from "./logger.js";
@@ -20,7 +21,15 @@ export async function runBru(opts: RunOptions): Promise<RunResult> {
   const target = opts.target;
   const fullPath = join(opts.collectionsDir, target);
   const isDir = await isDirectory(fullPath);
-  const reportPath = opts.reportPath ?? `/tmp/sapbruno-report-${process.pid.toString()}.json`;
+  const reportPath =
+    opts.reportPath ?? join(tmpdir(), `sapbruno-report-${process.pid.toString()}.json`);
+
+  if (!(await hasBruCli())) {
+    log.error(
+      "bru CLI not found. Install it in this project: pnpm add -D @usebruno/cli (or: npm i -D @usebruno/cli).",
+    );
+    return { exitCode: 127 };
+  }
 
   const args: string[] = ["run", target];
   if (isDir) args.push("-r");
@@ -55,6 +64,18 @@ async function isDirectory(path: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function hasBruCli(): Promise<boolean> {
+  return new Promise((resolveCheck) => {
+    const probe = spawn("bru", ["--version"], { stdio: "ignore" });
+    probe.on("error", () => {
+      resolveCheck(false);
+    });
+    probe.on("close", (code) => {
+      resolveCheck(code === 0);
+    });
+  });
 }
 
 interface BruReport {
