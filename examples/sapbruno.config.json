@@ -1,0 +1,30 @@
+{
+  "$schema": "./schema.json",
+  "collections": "./collections",
+  "ignore": ["public-cloud"],
+  "prefixStrip": "com_",
+  "environments": {
+    "local": {
+      "auth": {
+        "type": "basic",
+        "usersFile": "./local-auth.json"
+      }
+    },
+    "dev": {
+      "auth": { "type": "oauth2-client-credentials" },
+      "credentialProvider": {
+        "type": "env",
+        "tokenUrl": "DEV_TOKEN_URL",
+        "clientId": "DEV_CLIENT_ID",
+        "clientSecret": "DEV_CLIENT_SECRET"
+      }
+    },
+    "staging": {
+      "auth": { "type": "oauth2-client-credentials" },
+      "credentialProvider": {
+        "type": "file",
+        "path": "./creds/staging.json"
+      }
+    }
+  }
+}

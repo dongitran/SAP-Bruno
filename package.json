@@ -1,0 +1,113 @@
+{
+  "name": "sapbruno",
+  "version": "0.1.0",
+  "description": "Interactive TUI runner for Bruno collections with OAuth2 client_credentials auto-fetch and pluggable credential providers.",
+  "keywords": [
+    "bruno",
+    "bru",
+    "api",
+    "testing",
+    "oauth2",
+    "tui",
+    "cli",
+    "sap",
+    "btp",
+    "cap",
+    "cds"
+  ],
+  "license": "MIT",
+  "author": "dongtran",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dongitran/SAP-Bruno.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dongitran/SAP-Bruno/issues"
+  },
+  "homepage": "https://github.com/dongitran/SAP-Bruno#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "bin": {
+    "sapbruno": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "import": "./dist/providers/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "spell": "cspell --no-progress \"**/*.{ts,md,json}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepare": "husky",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.2.1",
+    "@usebruno/lang": "^0.33.0",
+    "commander": "^13.0.0",
+    "zod": "^3.24.1"
+  },
+  "peerDependencies": {
+    "@usebruno/cli": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@usebruno/cli": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.5",
+    "@vitest/coverage-v8": "^2.1.8",
+    "cspell": "^8.17.1",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import-x": "^4.6.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^2.1.8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "*.{ts,md,json}": [
+      "cspell --no-must-find-files"
+    ]
+  }
+}
