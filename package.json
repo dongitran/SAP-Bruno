@@ -69,7 +69,7 @@
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.2.1",
+    "@inquirer/prompts": "^8.4.1",
     "@usebruno/lang": "^0.33.0",
     "commander": "^13.0.0",
     "zod": "^3.24.1"
