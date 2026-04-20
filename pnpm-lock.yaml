@@ -15,8 +15,8 @@ importers:
         specifier: '>=2.0.0'
         version: 3.2.2
       '@usebruno/lang':
-        specifier: ^0.33.0
-        version: 0.33.0
+        specifier: ^0.35.0
+        version: 0.35.0
       commander:
         specifier: ^13.0.0
         version: 13.1.0
@@ -1760,9 +1760,6 @@ packages:
 
   '@usebruno/js@0.46.1':
     resolution: {integrity: sha512-kjfR2Xu4biHmNrSGKjmSm03Q/8VgkmgBkShjEWLvBL14HABr0+vVCcQVr/zxV86lgflv8aAY8jFOgZVciRFKAg==}
-
-  '@usebruno/lang@0.33.0':
-    resolution: {integrity: sha512-0B/BtMOV7ITfB/LO7OSESOYYmQjBCJ6g+3ca61iHh8djjCB2kzlJ9NaClAB43pjzOTAYiY+GfWMHFsptW79UFg==}
 
   '@usebruno/lang@0.35.0':
     resolution: {integrity: sha512-OI9XWn8kgXBVQTeSTHtcW1nGE7uSy2Xr0X79MyUPScVrMSJdkKF5JEZuKo9fkifRKvwqrxGi/OcJLzYgWQXEUg==}
@@ -5850,13 +5847,6 @@ snapshots:
     transitivePeerDependencies:
       - debug
       - encoding
-
-  '@usebruno/lang@0.33.0':
-    dependencies:
-      arcsecond: 5.0.0
-      dotenv: 16.6.1
-      lodash: 4.18.1
-      ohm-js: 16.6.0
 
   '@usebruno/lang@0.35.0':
     dependencies:
